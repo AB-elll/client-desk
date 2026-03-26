@@ -5,11 +5,9 @@ from datetime import datetime
 sys.path.insert(0, __file__.rsplit("/", 2)[0])
 
 from categories import CATEGORY_REGISTRY
-from db import init_db, upsert_record
 
 
 def prompt_field(fd):
-    """フィールドを対話入力。Enterでスキップ（任意フィールドの場合）"""
     hint = f" [{fd.hint}]" if fd.hint else ""
     required_mark = " *" if fd.required else ""
     prompt = f"  {fd.label}{required_mark}{hint}: "
@@ -25,7 +23,6 @@ def prompt_field(fd):
                 datetime.strptime(val, "%Y-%m-%d")
             except ValueError:
                 try:
-                    # YYYY/MM/DD も受け付ける
                     d = datetime.strptime(val, "%Y/%m/%d")
                     val = d.strftime("%Y-%m-%d")
                 except ValueError:
@@ -48,14 +45,13 @@ def prompt_field(fd):
         return val
 
 
-def run(client_id: str, category_id: str):
+def run(client_id: str, category_id: str, store):
     if category_id not in CATEGORY_REGISTRY:
         print(f"❌ カテゴリ '{category_id}' が存在しません。")
         print("利用可能:", ", ".join(CATEGORY_REGISTRY.keys()))
         return
 
     schema = CATEGORY_REGISTRY[category_id]
-    init_db()
 
     print(f"\n📋 [{schema.label}] 新規エントリー")
     print("  (* 必須項目 / Enterでスキップ可)")
@@ -69,7 +65,6 @@ def run(client_id: str, category_id: str):
 
     notes = input("  メモ（任意）: ").strip() or None
 
-    # record_key は最初の必須フィールドの値、なければ入力値から生成
     required_fields = [f for f in schema.fields if f.required]
     if required_fields:
         record_key = str(fields.get(required_fields[0].name, ""))
@@ -78,7 +73,7 @@ def run(client_id: str, category_id: str):
 
     primary_deadline, secondary_deadline = schema.extract_deadlines(fields)
 
-    record_id = upsert_record(
+    record_id = store.upsert(
         client_id=client_id,
         category=category_id,
         record_key=record_key,

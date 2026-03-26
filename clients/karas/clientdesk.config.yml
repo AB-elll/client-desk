@@ -2,6 +2,9 @@ client:
   name: "合同会社Kara's"
   id: "karas"
 
+store:
+  type: sheets   # sheets → supabase に変えるだけで移行完了
+
 drivedesk:
   db_path: "${DRIVEDESK_DB_PATH}"
   poll_interval_seconds: 300

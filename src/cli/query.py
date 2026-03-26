@@ -1,11 +1,5 @@
 """表示CLI: clientdesk show <category> [--expiring N]"""
-import sys
-from datetime import date, timedelta
-
-sys.path.insert(0, __file__.rsplit("/", 2)[0])
-
 from categories import CATEGORY_REGISTRY
-from db import get_records, get_expiring_records, init_db
 
 
 def _fmt(val, width=20):
@@ -15,44 +9,40 @@ def _fmt(val, width=20):
     return s.ljust(width)
 
 
-def show_records(client_id: str, category_id: str = None,
+def show_records(client_id: str, store, category_id: str = None,
                  expiring_days: int = None, status: str = "active"):
-    init_db()
-
     if expiring_days is not None:
-        records = get_expiring_records(client_id, expiring_days)
+        records = store.get_expiring(client_id, expiring_days)
         if category_id:
             records = [r for r in records if r["category"] == category_id]
         title = f"期限{expiring_days}日以内"
     else:
-        records = get_records(client_id, category_id, status)
-        title = CATEGORY_REGISTRY.get(category_id, type("", (), {"label": category_id})()).label \
-            if category_id else "全カテゴリ"
+        records = store.get_all(client_id, category_id, status)
+        schema = CATEGORY_REGISTRY.get(category_id) if category_id else None
+        title = schema.label if schema else (category_id or "全カテゴリ")
 
     if not records:
         print(f"該当レコードなし ({title})")
         return
 
     print(f"\n📋 {title}  ({len(records)}件)\n")
-    print(f"{'ID':<5} {'カテゴリ':<12} {'名称':<22} {'期限':<12} {'状態':<8} {'更新日':<12}")
-    print("-" * 75)
+    print(f"{'ID':<8} {'カテゴリ':<12} {'名称':<22} {'期限':<12} {'状態':<8} {'更新日':<12}")
+    print("-" * 78)
     for r in records:
         schema = CATEGORY_REGISTRY.get(r["category"])
         cat_label = schema.label if schema else r["category"]
         print(
-            f"{r['id']:<5} {_fmt(cat_label, 12)} {_fmt(r['record_key'], 22)}"
-            f" {(r['primary_deadline'] or '-'):<12} {r['status']:<8}"
-            f" {(r['updated_at'] or '')[:10]}"
+            f"{str(r.get('id','')):<8} {_fmt(cat_label, 12)} {_fmt(r.get('record_key',''), 22)}"
+            f" {(r.get('primary_deadline') or '-'):<12} {r.get('status',''):<8}"
+            f" {(r.get('updated_at') or '')[:10]}"
         )
     print()
 
 
-def show_summary(client_id: str):
-    """カテゴリ別レコード数サマリー"""
-    init_db()
-    all_records = get_records(client_id)
-    expiring_90 = get_expiring_records(client_id, 90)
-    expiring_30 = get_expiring_records(client_id, 30)
+def show_summary(client_id: str, store):
+    all_records  = store.get_all(client_id, status="all")
+    expiring_90  = store.get_expiring(client_id, 90)
+    expiring_30  = store.get_expiring(client_id, 30)
 
     counts: dict[str, int] = {}
     for r in all_records:
