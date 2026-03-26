@@ -1,0 +1,20 @@
+client:
+  name: "合同会社Kara's"
+  id: "karas"
+
+drivedesk:
+  db_path: "${DRIVEDESK_DB_PATH}"
+  poll_interval_seconds: 300
+
+sheets:
+  spreadsheet_id: "${CLIENTDESK_SHEET_ID}"
+  dashboard_sheet: "ダッシュボード"
+  alert_sheet: "⚠️ 期限アラート"
+
+alerts:
+  default_thresholds_days: [90, 30, 7]
+
+logger:
+  type: google_spreadsheet
+  spreadsheet_id: "${CLIENTDESK_SHEET_ID}"
+  sheet_name: "ClientDesk Log"
