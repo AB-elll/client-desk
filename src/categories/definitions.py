@@ -307,6 +307,20 @@ class PrivacySchema(CategorySchema):
     ]
 
 
+class EmailAccountsSchema(CategorySchema):
+    category_id = "email_accounts"
+    label = "メールアカウント"
+    source_type = "manual"
+    fields = [
+        FieldDef("email_address", "メールアドレス", required=True),
+        FieldDef("purpose", "用途", hint="代表窓口/受付/店舗連絡/システム管理/個人 等"),
+        FieldDef("owner", "管理者/利用者"),
+        FieldDef("linked_service", "関連サービス", hint="Gmail/Outlook/独自ドメイン/Google Workspace 等"),
+        FieldDef("renewal_date", "更新・確認予定日", type="date", is_primary_deadline=True),
+        FieldDef("notes", "備考"),
+    ]
+
+
 # ── 一元レジストリ ─────────────────────────────────────────────
 CATEGORY_REGISTRY: dict[str, CategorySchema] = {
     s.category_id: s for s in [
@@ -330,5 +344,6 @@ CATEGORY_REGISTRY: dict[str, CategorySchema] = {
         BcpSchema(),
         PartnersSchema(),
         PrivacySchema(),
+        EmailAccountsSchema(),
     ]
 }

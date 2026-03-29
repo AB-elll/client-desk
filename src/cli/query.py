@@ -1,5 +1,18 @@
 """表示CLI: clientdesk show <category> [--expiring N]"""
+import json as _json
 from categories import CATEGORY_REGISTRY
+
+# カテゴリごとに「補足」列に表示するフィールド
+_KEY_FIELDS: dict[str, tuple] = {
+    "email_accounts": ("email_address", "linked_service"),
+    "saas":           ("admin_email", "plan"),
+    "partners":       ("contact_email", "partner_type"),
+    "qualifications": ("employee_name", "qualification_name"),
+    "licenses":       ("license_name", "license_number"),
+    "contracts":      ("counterpart", "contract_type"),
+    "employment":     ("employee_name", "employment_type"),
+    "banking":        ("bank_name", "account_number"),
+}
 
 
 def _fmt(val, width=20):
@@ -26,15 +39,26 @@ def show_records(client_id: str, store, category_id: str = None,
         return
 
     print(f"\n📋 {title}  ({len(records)}件)\n")
-    print(f"{'ID':<8} {'カテゴリ':<12} {'名称':<22} {'期限':<12} {'状態':<8} {'更新日':<12}")
-    print("-" * 78)
+    print(f"{'ID':<8} {'カテゴリ':<12} {'名称':<20} {'期限':<12} {'状態':<8} {'補足':<30}")
+    print("-" * 92)
     for r in records:
         schema = CATEGORY_REGISTRY.get(r["category"])
         cat_label = schema.label if schema else r["category"]
+
+        fields = r.get("fields") or {}
+        if isinstance(fields, str):
+            try:
+                fields = _json.loads(fields)
+            except Exception:
+                fields = {}
+
+        extra_keys = _KEY_FIELDS.get(r["category"], ())
+        extra = "  ".join(str(fields[k]) for k in extra_keys if fields.get(k))
+
         print(
-            f"{str(r.get('id','')):<8} {_fmt(cat_label, 12)} {_fmt(r.get('record_key',''), 22)}"
+            f"{str(r.get('id','')):<8} {_fmt(cat_label, 12)} {_fmt(r.get('record_key',''), 20)}"
             f" {(r.get('primary_deadline') or '-'):<12} {r.get('status',''):<8}"
-            f" {(r.get('updated_at') or '')[:10]}"
+            f" {_fmt(extra, 30)}"
         )
     print()
 
