@@ -69,11 +69,11 @@ def main():
 
     elif command == "import-dd":
         from ingest.drivedesk import poll
-        dd_spreadsheet_id = config.get("drivedesk", {}).get("spreadsheet_id", "")
-        if not dd_spreadsheet_id:
-            print("❌ drivedesk.spreadsheet_id が設定されていません")
+        dd_path = config.get("drivedesk", {}).get("db_path", "")
+        if not dd_path:
+            print("❌ drivedesk.db_path が設定されていません")
             sys.exit(1)
-        count = poll(client_id, dd_spreadsheet_id, store)
+        count = poll(client_id, dd_path, store)
         print(f"✅ DriveDesk取込完了: {count}件")
 
     else:
