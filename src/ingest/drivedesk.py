@@ -35,8 +35,8 @@ def poll(client_id: str, drivedesk_db_path: str, store) -> int:
     dd_conn = sqlite3.connect(db_path)
     dd_conn.row_factory = sqlite3.Row
     rows = dd_conn.execute(
-        """SELECT file_id, file_name, primary_date, dates, category,
-                  subcategory, confidence, status, updated_at
+        """SELECT file_id, file_name, primary_date, dates, extracted_fields,
+                  category, subcategory, confidence, status, updated_at
            FROM files
            WHERE status = 'processed' AND updated_at > ?
            ORDER BY updated_at ASC""",
@@ -60,14 +60,18 @@ def poll(client_id: str, drivedesk_db_path: str, store) -> int:
             continue
 
         dates = json.loads(row["dates"] or "{}") if row["dates"] else {}
+        extra = json.loads(row["extracted_fields"] or "{}") if row["extracted_fields"] else {}
         fields = {"source_file": row["file_name"],
-                  "primary_date": row["primary_date"] or "", **dates}
+                  "primary_date": row["primary_date"] or "", **dates, **extra}
 
         primary_deadline = None
+        secondary_deadline = None
         for fd in schema.fields:
             val = fields.get(fd.name) or (row["primary_date"] if fd.is_primary_deadline else None)
             if val and fd.is_primary_deadline and not primary_deadline:
                 primary_deadline = val
+            if val and getattr(fd, "is_secondary_deadline", False) and not secondary_deadline:
+                secondary_deadline = val
 
         store.upsert(
             client_id=client_id,
@@ -75,6 +79,7 @@ def poll(client_id: str, drivedesk_db_path: str, store) -> int:
             record_key=row["file_name"],
             fields=fields,
             primary_deadline=primary_deadline,
+            secondary_deadline=secondary_deadline,
             source="drivedesk",
             drive_file_id=row["file_id"],
         )
