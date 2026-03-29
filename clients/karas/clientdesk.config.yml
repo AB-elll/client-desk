@@ -6,7 +6,7 @@ store:
   type: sheets   # sheets → supabase に変えるだけで移行完了
 
 drivedesk:
-  db_path: "${DRIVEDESK_DB_PATH}"
+  spreadsheet_id: "${DRIVEDESK_SPREADSHEET_ID}"
   poll_interval_seconds: 300
 
 sheets:
