@@ -23,6 +23,16 @@ DRIVEDESK_MAP = {
     "registration":        "licenses",
 }
 
+# DriveDesk の extracted_fields キー → ClientDesk スキーマのフィールド名
+FIELD_REMAPPER: dict[str, dict[str, str]] = {
+    "qualifications": {
+        "person_name":    "employee_name",
+        "license_name":   "qualification_name",
+        "license_number": "registration_number",
+        "authority":      "issuing_authority",
+    },
+}
+
 
 def poll(client_id: str, drivedesk_db_path: str, store) -> int:
     db_path = Path(drivedesk_db_path)
@@ -61,8 +71,11 @@ def poll(client_id: str, drivedesk_db_path: str, store) -> int:
 
         dates = json.loads(row["dates"] or "{}") if row["dates"] else {}
         extra = json.loads(row["extracted_fields"] or "{}") if row["extracted_fields"] else {}
-        fields = {"source_file": row["file_name"],
-                  "primary_date": row["primary_date"] or "", **dates, **extra}
+        raw_fields = {"source_file": row["file_name"],
+                      "primary_date": row["primary_date"] or "", **dates, **extra}
+
+        remapper = FIELD_REMAPPER.get(cd_category, {})
+        fields = {remapper.get(k, k): v for k, v in raw_fields.items()}
 
         primary_deadline = None
         secondary_deadline = None
